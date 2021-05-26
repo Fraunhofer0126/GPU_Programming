@@ -27,25 +27,30 @@ __global__ void kernel_matrix_multiply_block(float *M, float *N, float *P, int M
 {
     int tx = threadIdx.x, ty = threadIdx.y;
     int bx = blockIdx.x, by = blockIdx.y;
+    int row = by*BLOCK_SIZE+ty;
+    int col = bx*BLOCK_SIZE+tx;
 
-    if(bx*blockDim.x+tx<N_cols && by*blockDim.y+ty < M_rows){
-        int mbegin = M_cols * BLOCK_SIZE * by;
-        int mend = mbegin + M_cols - 1;
-        int nbegin = BLOCK_SIZE * bx;
-        float Pvalue = P[N_cols*BLOCK_SIZE*by+BLOCK_SIZE*bx+N_cols*ty+tx];
-        __shared__ float sm[BLOCK_SIZE][BLOCK_SIZE];
-        __shared__ float sn[BLOCK_SIZE][BLOCK_SIZE];
-        for(int i = mbegin, j = nbegin; i <= mend; i+=BLOCK_SIZE, j+=BLOCK_SIZE*N_cols){
-            sm[ty][tx] = M[i+M_cols*ty+tx];
-            sn[ty][tx] = N[j+N_cols*ty+tx];
-            __syncthreads();
-            for(int k = 0; k < BLOCK_SIZE; k++){
-                Pvalue += sm[ty][k] * sn[k][tx];
-            }
-            __syncthreads();
+    float Pvalue = 0.0;
+    __shared__ float sm[BLOCK_SIZE][BLOCK_SIZE];
+    __shared__ float sn[BLOCK_SIZE][BLOCK_SIZE];
+    for(int i = 0; i < (int)(ceil((double)M_cols/BLOCK_SIZE)); i++){
+
+        if(i*BLOCK_SIZE+tx<M_cols && row < M_rows)
+            sm[ty][tx] = M[row*M_cols+i*BLOCK_SIZE+tx];
+        else sm[ty][tx] = 0.0;
+
+        if(i*BLOCK_SIZE+ty<N_rows && col < N_cols)
+            sn[ty][tx] = N[(i*BLOCK_SIZE+ty)*N_cols+col];
+        else sn[ty][tx] = 0.0;
+        
+        __syncthreads();
+        for(int k = 0; k < BLOCK_SIZE; k++){
+            Pvalue += sm[ty][k] * sn[k][tx];
         }
-        P[N_cols*BLOCK_SIZE*by+BLOCK_SIZE*bx+N_cols*ty+tx] = Pvalue;
+        __syncthreads();
     }
+    if(row < M_rows && col < N_cols)
+        P[row*N_cols+col] = Pvalue;
 }
 
 
@@ -146,6 +151,7 @@ int main(int argc, char **argv)
     *  Save Results  *
     */
     write_matrix(matrix_P_filename, P, M_rows, N_cols);
+    //write_matrix(matrix_P_filename, Pb, M_rows, N_cols);
     
     printf("----------------------------------------\n");
     
@@ -156,7 +162,7 @@ int main(int argc, char **argv)
         printf("\n Checking results ... \n");
         int R_rows, R_cols;
         float *R = read_matrix(matrix_R_filename, &R_rows, &R_cols);;
-        if(compare_matrix(P, R, R_rows, R_cols)==1){ printf("##Passed!\n\n"); }else{ printf("@@Failed!\n\n"); }
+        if(compare_matrix(Pb, R, R_rows, R_cols)==1){ printf("##Passed!\n\n"); }else{ printf("@@Failed!\n\n"); }
         free(R);
     }
     

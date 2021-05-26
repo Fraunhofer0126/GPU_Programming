@@ -19,7 +19,7 @@ int compare_matrix(float *in_matrix, float *ref_matrix, int num_rows, int num_co
 		{
             float error = abs(in_matrix[row*(num_cols)+col]-ref_matrix[row*(num_cols)+col]);
             if(error>1e-2){
-                printf("Results don't match! [%d, %d] %f", row, col, error);
+                printf("Results don't match! [%d, %d] %f\n%f   %f\n", row, col, error,in_matrix[row*(num_cols)+col],ref_matrix[row*(num_cols)+col]);
                 return -1;
             }
 		}
