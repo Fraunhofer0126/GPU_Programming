@@ -40,7 +40,6 @@ void matrix_multiply_block(const float *M, const float *N, float *P, int M_rows,
             }
         }
     }
-
 }
 
 int main(int argc, char **argv)

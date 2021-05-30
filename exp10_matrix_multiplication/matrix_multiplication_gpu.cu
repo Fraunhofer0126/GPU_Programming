@@ -35,14 +35,14 @@ __global__ void kernel_matrix_multiply_block(float *M, float *N, float *P, int M
     __shared__ float sn[BLOCK_SIZE][BLOCK_SIZE];
     for(int i = 0; i < (int)(ceil((double)M_cols/BLOCK_SIZE)); i++){
 
-        if(i*BLOCK_SIZE+tx<M_cols && row < M_rows)
+        if(i*BLOCK_SIZE+tx<M_cols && row < M_rows) //存储在行里不超过M_cols
             sm[ty][tx] = M[row*M_cols+i*BLOCK_SIZE+tx];
         else sm[ty][tx] = 0.0;
 
-        if(i*BLOCK_SIZE+ty<N_rows && col < N_cols)
+        if(i*BLOCK_SIZE+ty<N_rows && col < N_cols) //存储在列里不超过N_rows
             sn[ty][tx] = N[(i*BLOCK_SIZE+ty)*N_cols+col];
         else sn[ty][tx] = 0.0;
-        
+
         __syncthreads();
         for(int k = 0; k < BLOCK_SIZE; k++){
             Pvalue += sm[ty][k] * sn[k][tx];
