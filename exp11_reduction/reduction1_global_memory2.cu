@@ -112,30 +112,12 @@ void test(int n,
 	vector_input = test_data_gen(n);
 
 	printf("---------------------------\n");
-	float time_cost_gpu = -1, time_cost_cpu = -1;
-	cudaEvent_t gpu_start, gpu_stop, cpu_start, cpu_stop;
-
-	cudaEventCreate(&gpu_start);
-	cudaEventCreate(&gpu_stop);
-	cudaEventCreate(&cpu_start);
-	cudaEventCreate(&cpu_stop);
-
 	///cpu
-	cudaEventRecord(cpu_start);
 	computed_result = partialSum(vector_input, n);
-	cudaEventRecord(cpu_stop);
-	cudaEventSynchronize(cpu_stop);
-	cudaEventElapsedTime(&time_cost_cpu, cpu_start, cpu_stop);
-	printf("Time cost (CPU):%f ms \n", time_cost_cpu);
 	///
 	
 	///gpu
-	cudaEventRecord(gpu_start);
 	computed_result_gpu = reduction(vector_input, n, kernel);
-	cudaEventRecord(gpu_stop);
-	cudaEventSynchronize(gpu_stop);
-	cudaEventElapsedTime(&time_cost_gpu, gpu_start, gpu_stop);
-	printf("Time cost (GPU):%f ms \n", time_cost_gpu);
 	///
 
 
@@ -157,7 +139,7 @@ void test(int n,
 
 int main(int argc, char **argv) {
 
-	int n_arr[] = {1, 7, 32, 65, 128, 585, 5000, 300001, 1<<20};
+	int n_arr[] = {1, 7, 585, 5000, 300001, 1<<20};
 	for(int i=0; i<sizeof(n_arr)/sizeof(int); i++)
 	{
 		test(n_arr[i], gpu_reduction_gpu, kernel_reduction_non_consecutive);

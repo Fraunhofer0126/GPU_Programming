@@ -7,6 +7,8 @@
 #define DTYPE_FORMAT "%lf"
 #define BLOCK_SIZE 32
 
+float time_cost_gpu = -1, time_cost_cpu = -1;
+cudaEvent_t gpu_start, gpu_stop, cpu_start, cpu_stop;
 
 DTYPE partialSum(DTYPE *vector, int n) {
 	DTYPE temp = 0;
@@ -54,7 +56,12 @@ DTYPE gpu_reduction(DTYPE *input, int n,
 	CHECK(cudaMalloc((void**)&in, MEM_SIZE));
 	CHECK(cudaMemcpy(in, input, MEM_SIZE, cudaMemcpyHostToDevice));
 	int grid = ceil((double)n/BLOCK_SIZE);
+	cudaEventRecord(gpu_start);
 	kernel<<<grid, BLOCK_SIZE>>>(in, out, n);
+	cudaEventRecord(gpu_stop);
+	cudaEventSynchronize(gpu_stop);
+	cudaEventElapsedTime(&time_cost_gpu, gpu_start, gpu_stop);
+	
 	CHECK(cudaMemcpyFromSymbol(&ans, global_sum, sizeof(DTYPE)));
 	CHECK(cudaFree(in));
 
@@ -81,8 +88,6 @@ void test(int n,
 	vector_input = test_data_gen(n);
 
 	printf("---------------------------\n");
-	float time_cost_gpu = -1, time_cost_cpu = -1;
-	cudaEvent_t gpu_start, gpu_stop, cpu_start, cpu_stop;
 
 	cudaEventCreate(&gpu_start);
 	cudaEventCreate(&gpu_stop);
@@ -99,11 +104,7 @@ void test(int n,
 	///
 	
 	///gpu
-	cudaEventRecord(gpu_start);
 	computed_result_gpu = reduction(vector_input, n, kernel);
-	cudaEventRecord(gpu_stop);
-	cudaEventSynchronize(gpu_stop);
-	cudaEventElapsedTime(&time_cost_gpu, gpu_start, gpu_stop);
 	printf("Time cost (GPU):%f ms \n", time_cost_gpu);
 	///
 	printf("[%d] Computed sum (CPU): ", n);
